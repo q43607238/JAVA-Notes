@@ -1,18 +1,18 @@
 [TOC]
 
-# ThreadLocal
+# 1. ThreadLocal
 
-## 简介
+## 1.1 简介
 
 `ThreadLoca`l是一个将在多线程中为每一个线程创建单独的变量副本的类; 当使用`ThreadLocal`来维护变量时, `ThreadLocal`会为每个线程创建单独的变量副本, 避免因多线程操作共享变量而导致的数据不一致的情况。如果我们希望通过某个类将状态(例如用户ID、事务ID)与线程关联起来，那么通常在这个类中定义`private static`类型的`ThreadLocal` 实例。
 
-## 学习参考资料
+## 1.2 学习参考资料
 
 https://www.pdai.tech/md/java/thread/java-thread-x-threadlocal.html
 
 https://segmentfault.com/a/1190000022663697
 
-## 使用场景
+## 1.3 使用场景
 
 如下数据库管理类在单线程使用是没有任何问题的：
 
@@ -84,7 +84,7 @@ public class ConnectionManager {
 }
 ```
 
-## 线程隔离原理
+## 1.4 线程隔离原理
 
 <img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/ThreadLocal/ThreadLocal.png" alt="ThreadLocal结构" style="zoom:55%;" />
 
