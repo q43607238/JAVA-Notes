@@ -4,7 +4,7 @@
 
 ### @Table：声明当前实体类对应的数据库表的名字
 
-<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/Little%20Notes/image-20210716112045621" style ="zoom:80%"/>
+<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/Little%20Notes/image-20210716112045621.png" style ="zoom:80%"/>
 
 ---
 
