@@ -4,7 +4,7 @@
 
 ## 1.1 简介
 
-`ThreadLoca`l是一个将在多线程中为每一个线程创建单独的变量副本的类; 当使用`ThreadLocal`来维护变量时, `ThreadLocal`会为每个线程创建单独的变量副本, 避免因多线程操作共享变量而导致的数据不一致的情况。如果我们希望通过某个类将状态(例如用户ID、事务ID)与线程关联起来，那么通常在这个类中定义`private static`类型的`ThreadLocal` 实例。
+`ThreadLocal`是一个将在多线程中为每一个线程创建单独的变量副本的类; 当使用`ThreadLocal`来维护变量时, `ThreadLocal`会为每个线程创建单独的变量副本, 避免因多线程操作共享变量而导致的数据不一致的情况。如果我们希望通过某个类将状态(例如用户ID、事务ID)与线程关联起来，那么通常在这个类中定义`private static`类型的`ThreadLocal` 实例。
 
 ## 1.2 学习参考资料
 
@@ -86,7 +86,7 @@ public class ConnectionManager {
 
 ## 1.4 线程隔离原理
 
-<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/ThreadLocal/ThreadLocal.png" alt="ThreadLocal结构" style="zoom:55%;" />
+<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/ThreadLocal/ThreadLocal.png" alt="ThreadLocal结构" style="zoom:30%;" />
 
 在`ThreadLocal`中，存在一个`ThreadLocalMap`的内部类，在`ThreadLocalMap`类中还有一个`Entry`实体类：
 
@@ -94,7 +94,7 @@ public class ConnectionManager {
 
 值得注意的是，`ThreadLocalMap`中的`Entry`是一个弱引用，`WeakReference`引用的对象，在GC的时候**无论是否内存空间足够都会被回收。**
 
-这里就需要提到**内存泄露**的概念，内存泄漏往往发生在**一个短生命周期的对象被一个长生命周期对象长期持有引用，将会导致该短生命周期对象使用完之后得不到释放，从而导致内存泄漏。**例如：在`ThreadLocal`中，其本身就是一个短期生命周期对象，例如在数据库连接过程中得`connection`数据库连接对象，在执行完sql之后可能就会关闭。
+这里就需要提到**内存泄露**的概念，内存泄漏往往发生在**一个短生命周期的对象被一个长生命周期对象长期持有引用，将会导致该短生命周期对象使用完之后得不到释放，从而导致内存泄漏。** 例如：在`ThreadLocal`中，其本身就是一个短期生命周期对象，例如在数据库连接过程中得`connection`数据库连接对象，在执行完sql之后可能就会关闭。
 
 1. **为什么ThreadLocalMap使用弱引用存储ThreadLocal？**
 
