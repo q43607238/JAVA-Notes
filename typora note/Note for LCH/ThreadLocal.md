@@ -86,7 +86,7 @@ public class ConnectionManager {
 
 ## 线程隔离原理
 
-<img src="C:\Users\emoli\Desktop\typora pic\ThreadLocal\ThreadLocal结构.png" alt="ThreadLocal结构" style="zoom:55%;" />
+<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/ThreadLocal/ThreadLocal.png" alt="ThreadLocal结构" style="zoom:55%;" />
 
 在`ThreadLocal`中，存在一个`ThreadLocalMap`的内部类，在`ThreadLocalMap`类中还有一个`Entry`实体类：
 
