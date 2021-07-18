@@ -6,11 +6,15 @@
 
 `ThreadLocal`是一个将在多线程中为每一个线程创建单独的变量副本的类; 当使用`ThreadLocal`来维护变量时, `ThreadLocal`会为每个线程创建单独的变量副本, 避免因多线程操作共享变量而导致的数据不一致的情况。如果我们希望通过某个类将状态(例如用户ID、事务ID)与线程关联起来，那么通常在这个类中定义`private static`类型的`ThreadLocal` 实例。
 
+---
+
 ## 1.2 学习参考资料
 
 https://www.pdai.tech/md/java/thread/java-thread-x-threadlocal.html
 
 https://segmentfault.com/a/1190000022663697
+
+---
 
 ## 1.3 使用场景
 
@@ -84,13 +88,15 @@ public class ConnectionManager {
 }
 ```
 
+---
+
 ## 1.4 线程隔离原理
 
-<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/ThreadLocal/ThreadLocal.png" alt="ThreadLocal结构" style="zoom:30%;" />
+<img src="https://raw.githubusercontent.com/q43607238/JAVA-Notes/master/typora%20pic/ThreadLocal/ThreadLocal.png" alt="ThreadLocal结构" style="zoom:60%;" />
 
 在`ThreadLocal`中，存在一个`ThreadLocalMap`的内部类，在`ThreadLocalMap`类中还有一个`Entry`实体类：
 
-### Entry
+### 1.4.1 Entry
 
 值得注意的是，`ThreadLocalMap`中的`Entry`是一个弱引用，`WeakReference`引用的对象，在GC的时候**无论是否内存空间足够都会被回收。**
 
@@ -98,15 +104,15 @@ public class ConnectionManager {
 
 1. **为什么ThreadLocalMap使用弱引用存储ThreadLocal？**
 
-   假如使用强引用，当ThreadLocal不再使用需要回收时，发现某个线程中ThreadLocalMap存在该ThreadLocal的强引用，无法回收，造成内存泄漏。
+   假如使用强引用，当`ThreadLocal`不再使用需要回收时，发现某个线程中`ThreadLocalMap`存在该`ThreadLocal`的强引用，无法回收，造成内存泄漏。
 
-   因此，使用弱引用可以防止长期存在的线程（通常使用了线程池）导致ThreadLocal无法回收造成内存泄漏。
+   因此，使用弱引用可以防止长期存在的线程（通常使用了线程池）导致`ThreadLocal`无法回收造成内存泄漏。
 
 2. **那通常说的ThreadLocal内存泄漏是如何引起的呢？**
 
-   我们注意到Entry对象中，虽然Key(ThreadLocal)是通过弱引用引入的，但是value即变量值本身是通过强引用引入。
+   我们注意到`Entry`对象中，虽然Key(ThreadLocal)是通过弱引用引入的，但是value即变量值本身是通过强引用引入。
 
-   这就导致，假如不作任何处理，由于ThreadLocalMap和线程的生命周期是一致的，当线程资源长期不释放，即使ThreadLocal本身由于弱引用机制已经回收掉了，但value还是驻留在线程的ThreadLocalMap的Entry中。即存在key为null，但value却有值的无效Entry。导致内存泄漏。
+   这就导致，假如不作任何处理，由于`ThreadLocalMap`和线程的生命周期是一致的，当线程资源长期不释放，即使`ThreadLocal`本身由于弱引用机制已经回收掉了，但value还是驻留在线程的`ThreadLocalMap`的`Entry`中。即存在key为null，但value却有值的无效`Entry`。导致内存泄漏。
 
 ```java
 static class Entry extends WeakReference<ThreadLocal<?>> {
@@ -122,7 +128,7 @@ static class Entry extends WeakReference<ThreadLocal<?>> {
 
 先看`ThreadLocal`的`get`方法：
 
-### get
+### 1.4.2 get
 
 ```java
 public T get() { //T在本例中就是connection，返回值，调用这个方法的是dbConnectionLocal，即ThreadLocal
@@ -152,7 +158,7 @@ private Entry getEntry(ThreadLocal<?> key) {
 
 初始化的代码`setInitialValue`为：
 
-### setInitialValue
+### 1.4.3 setInitialValue
 
 ```java
 private T setInitialValue() {
@@ -167,7 +173,7 @@ private T setInitialValue() {
 }
 ```
 
-### set
+### 1.4.4 set
 
 ```java
 private void set(ThreadLocal<?> key, Object value) {
@@ -199,7 +205,7 @@ private void set(ThreadLocal<?> key, Object value) {
 }
 ```
 
-### replaceStaleEntry（）
+### 1.4.5 replaceStaleEntry（）
 
 替换过期的实体；
 
@@ -254,6 +260,8 @@ private void replaceStaleEntry(ThreadLocal<?> key, Object value, int staleSlot) 
 ```
 
 ## 未完待续，一些回收方法还没看懂
+
+在`ThreadLocal`中，其为了避免内存泄漏，提供了一些方法来自主回收内存。
 
 
 
