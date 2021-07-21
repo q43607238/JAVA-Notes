@@ -88,3 +88,182 @@ public void init() {
 }
 ```
 
+
+
+---
+
+## 具体细节
+
+### MockClient类
+
+首先我们从创建一个新的MockClient开始，首先其调用了`ok()`方法并往里面传入了访问远端服务的HTTP请求方法，确定性URL和返回数据的字节流。
+
+```java
+            .client(mockClient
+                    .ok(HttpMethod.GET,
+                        "/v1/search/insite?content_source=techmap&weight=weight_true"
+                        + "&user=willieyin&query=k8s&offset=1&limit=10",
+                        data)
+                    .ok(HttpMethod.GET,
+                        "/v1/search/insite?content_source=techmap&weight=weight_true"
+                        + "&user=willieyin&offset=1&limit=10",
+                        data))
+```
+
+接下来的内部调用如下：
+
+```java
+    public MockClient ok(HttpMethod method, String url, byte[] responseBody) {
+        //第一步，我们将请求方法和URL打包为了一个requestKey,其次将responseBody继续返回回去
+        return ok(RequestKey.builder(method, url).build(), responseBody);
+    }
+    MockClient ok(RequestKey requestKey, byte[] responseBody) {
+        //第二步，我们进一步调用ok方法的重载，并设定HTTP的回复状态码，这里为OK，状态码为200
+        return add(requestKey, HttpURLConnection.HTTP_OK, responseBody);
+    }
+    MockClient add(RequestKey requestKey, int status, byte[] responseBody) {
+        //第三步，我们要将responseBody以及status等等信息包装为一个Response.Builder
+        return add(requestKey, Response.builder()
+                .status(status)
+                .reason("Mocked")
+                .headers(EMPTY_HEADERS)
+                .body(responseBody)); //其中我们的字节流数据就保存在这个Response.Builder的body里面
+    }
+    MockClient add(RequestKey requestKey, Response.Builder response) {
+        //第四部，我们利用前面封装好的requestKey和Response.Builder构建一个RequestResponse对象，并加入到responses链表中，
+        // private final List<RequestResponse> responses = new ArrayList<>();
+        responses.add(new RequestResponse(requestKey, response));
+        return this;
+    }
+```
+
+至此，我们将传入的URL和data结合其他信息（例如HTTP状态）全都封装到了`MockClient`里面的`responses`List中。
+
+
+
+那么，一个`MockClient`是怎么启动并回应请求的呢，可以看的`MockClient`继承了`Client`并重写了其中的`execute()`方法。虽然还没看到调用此方法的源码，但是可以猜测到，这类重写的方法一般都是要被调用的~
+
+#### execute()
+
+```java
+    @Override
+    public synchronized Response execute(Request request, Request.Options options)
+            throws IOException {
+        //execute()方法传入了一个request（表示外部请求），以及一个Request.Options
+        
+        //首先通过外部请求request，我们可以构建出一个requestKey，注意，在上面构建MockClient的时候，我们在第四步，将requestKey以及response.Builder构建为了一个RequestResponse并存在了MockClient的List中，想必我们通过这个请求进来的request构建的requestKey，可以用类似遍历查表的方式从而找对我们Mock出来的对应的ResponseBody!
+        RequestKey requestKey = RequestKey.create(request);
+        //声明一个新的 Response.Builder
+        Response.Builder responseBuilder;
+        //sequential是一个boolean值，表示是否进行序列化查找，默认是false
+        if (sequential) {
+            responseBuilder = executeSequential(requestKey);
+        } else {
+            responseBuilder = executeAny(request, requestKey);
+        }
+
+        return responseBuilder
+                .request(request)
+                .build();
+        //最后调用了build()，相当于吧Builder里面的属性变量都赋给了最终返回的Response，而我们预先定义好的data就在Response.body里面！
+    }
+```
+
+#### executeSequential()
+
+从名字上来看，这个方法实现了顺序查找**下一个**并返回response。
+
+```java
+    private Response.Builder executeSequential(RequestKey requestKey) {
+        if (responseIterator == null) {
+            //responses是一个List，可以直接调用其的iterator()进行迭代查找
+            responseIterator = responses.iterator();
+        }
+        if (!responseIterator.hasNext()) {
+            throw new VerificationAssertionError("Received excessive request %s", requestKey);
+        }
+
+        RequestResponse expectedRequestResponse = responseIterator.next();
+        //equalsExtended()方法会返回一个boolean值，其作用就是判断传进来的key和List中存的这个key是否相同
+        if (!expectedRequestResponse.requestKey.equalsExtended(requestKey)) {
+            throw new VerificationAssertionError("Expected %s, but was %s",
+                    expectedRequestResponse.requestKey, requestKey);
+        }
+		//如果这个request确实对应了一个responseBuilder，那就返回
+        Response.Builder responseBuilder = expectedRequestResponse.responseBuilder;
+        return responseBuilder;
+    }
+```
+
+#### executeAny()
+
+```java
+    private Response.Builder executeAny(Request request, RequestKey requestKey) {
+        Response.Builder responseBuilder;
+        //requests是一个map，用来存储对应requestKey下的对应请求List
+        //private final Map<RequestKey, List<Request>> requests = new HashMap<>();
+        if (requests.containsKey(requestKey)) {
+            requests.get(requestKey).add(request);
+        } else {
+            requests.put(requestKey, new ArrayList<>(Arrays.asList(request)));
+        }
+		//调用getResponseBuilder()方法遍历寻找我们需要的responseBody
+        responseBuilder = getResponseBuilder(request, requestKey);
+        return responseBuilder;
+    }
+```
+
+#### getResponseBuilder()
+
+```java
+    private Response.Builder getResponseBuilder(Request request, RequestKey requestKey) {
+        Response.Builder responseBuilder = null;
+        //遍历responses链表，寻找外部请求request对应的RequestKey
+        for (RequestResponse requestResponse : responses) {
+            if (requestResponse.requestKey.equalsExtended(requestKey)) {
+                responseBuilder = requestResponse.responseBuilder;
+                // Don't break here, last one should win to be compatible with previous
+                // releases of this library!
+            }
+        }
+        //如果遍历完了没找到，就返回404not found
+        if (responseBuilder == null) {
+            responseBuilder = Response.builder()
+                    .status(HttpURLConnection.HTTP_NOT_FOUND)
+                    .reason("Not mocker")
+                    .headers(request.headers());
+        }
+        return responseBuilder;
+    }
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
